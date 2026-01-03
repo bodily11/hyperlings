@@ -172,14 +172,14 @@ export class BattleMonster {
 
     this._scene.tweens.add({
       delay: 0,
-      duration: 150,
+      duration: 100,
       targets: this._phaserGameObject,
       alpha: {
         from: 1,
         start: 1,
         to: 0,
       },
-      repeat: 10,
+      repeat: 5,
       onComplete: () => {
         this._phaserGameObject.setAlpha(1);
         callback();

@@ -12,9 +12,32 @@ import { InventoryScene } from './scenes/inventory-scene.js';
 import { CutsceneScene } from './scenes/cutscene-scene.js';
 import { DialogScene } from './scenes/dialog-scene.js';
 
+// Global shift key state tracker to persist across scene transitions
+// This is needed because shift key doesn't auto-repeat, so new scenes
+// won't detect it's being held without this global tracking
+let globalShiftKeyHeld = false;
+
+// Add document-level event listeners to track shift key state
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Shift') {
+    globalShiftKeyHeld = true;
+  }
+});
+
+document.addEventListener('keyup', (event) => {
+  if (event.key === 'Shift') {
+    globalShiftKeyHeld = false;
+  }
+});
+
+// Export a function to check shift state
+export function isGlobalShiftKeyHeld() {
+  return globalShiftKeyHeld;
+}
+
 const game = new Phaser.Game({
   type: Phaser.CANVAS,
-  pixelArt: false,
+  pixelArt: true,
   scale: {
     parent: 'game-container',
     width: 1024,

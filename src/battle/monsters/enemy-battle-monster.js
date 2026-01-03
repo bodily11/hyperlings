@@ -37,7 +37,7 @@ export class EnemyBattleMonster extends BattleMonster {
 
     this._scene.tweens.add({
       delay: 0,
-      duration: 1600,
+      duration: 800,
       x: {
         from: startXPos,
         start: startXPos,
@@ -68,7 +68,7 @@ export class EnemyBattleMonster extends BattleMonster {
 
     this._scene.tweens.add({
       delay: 0,
-      duration: 1500,
+      duration: 750,
       x: {
         from: startXPos,
         start: startXPos,

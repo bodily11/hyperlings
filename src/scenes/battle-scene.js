@@ -228,6 +228,7 @@ export class BattleScene extends BaseScene {
         this.#battleStateMachine.currentStateName === BATTLE_STATES.SWITCH_MONSTER ||
         this.#battleStateMachine.currentStateName === BATTLE_STATES.NPC_SWITCH_MONSTER ||
         this.#battleStateMachine.currentStateName === BATTLE_STATES.CAPTURE_ITEM_USED ||
+        this.#battleStateMachine.currentStateName === BATTLE_STATES.CAUGHT_MONSTER ||
         this.#battleStateMachine.currentStateName === BATTLE_STATES.FLEE_ATTEMPT)
     ) {
       this.#battleMenu.handlePlayerInput('OK');
@@ -573,6 +574,8 @@ export class BattleScene extends BaseScene {
     this.#battleStateMachine.addState({
       name: BATTLE_STATES.ENEMY_INPUT,
       onEnter: () => {
+        // hide the main battle menu to prevent interaction during enemy turn
+        this.#battleMenu.hideMainBattleMenu();
         // pick a random move for the enemy monster, and in the future implement some type of AI behavior
         this.#activeEnemyAttackIndex = this.#activeEnemyMonster.pickRandomMove();
         this.#battleStateMachine.setState(BATTLE_STATES.BATTLE);

@@ -72,7 +72,7 @@ export class PlayerBattleMonster extends BattleMonster {
 
     this._scene.tweens.add({
       delay: 0,
-      duration: 800,
+      duration: 400,
       x: {
         from: startXPos,
         start: startXPos,
@@ -103,7 +103,7 @@ export class PlayerBattleMonster extends BattleMonster {
 
     this._scene.tweens.add({
       delay: 0,
-      duration: 800,
+      duration: 400,
       x: {
         from: startXPos,
         start: startXPos,
