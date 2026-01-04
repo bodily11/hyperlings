@@ -508,9 +508,9 @@ export class BattleScene extends BaseScene {
         await this.#enemyBattleNpc.playAppearAnimation();
 
         // wait for text animation to complete and move to next state
-        this.#showMessagesAndWaitForInput([`${this.#sceneData.npc.name} would like to battle!`], () => {
-          // hide npc as they bring out their monster
-          this.#enemyBattleNpc.hide();
+        this.#showMessagesAndWaitForInput([`${this.#sceneData.npc.name} would like to battle!`], async () => {
+          // play exit animation for npc as they bring out their monster
+          await this.#enemyBattleNpc.playExitAnimation();
           this.#battleStateMachine.setState(BATTLE_STATES.PRE_BATTLE_INFO);
         });
       },

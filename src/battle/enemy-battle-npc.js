@@ -43,7 +43,7 @@ export class EnemyBattleNpc {
 
       this.#scene.tweens.add({
         delay: 0,
-        duration: 1600,
+        duration: 600,
         x: {
           from: startXPos,
           start: startXPos,
@@ -51,6 +51,38 @@ export class EnemyBattleNpc {
         },
         targets: this.#phaserGameObject,
         onComplete: () => {
+          resolve();
+        },
+      });
+    });
+  }
+
+  /**
+   * @public
+   * @returns {Promise<void>}
+   */
+  playExitAnimation() {
+    return new Promise((resolve) => {
+      const startXPos = this.#phaserGameObject.x;
+      const endXPos = -30;
+
+      if (this.#skipBattleAnimations) {
+        this.#phaserGameObject.setVisible(false);
+        resolve();
+        return;
+      }
+
+      this.#scene.tweens.add({
+        delay: 0,
+        duration: 600,
+        x: {
+          from: startXPos,
+          start: startXPos,
+          to: endXPos,
+        },
+        targets: this.#phaserGameObject,
+        onComplete: () => {
+          this.#phaserGameObject.setVisible(false);
           resolve();
         },
       });
