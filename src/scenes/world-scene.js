@@ -474,11 +474,7 @@ export class WorldScene extends BaseScene {
       const signId = props.find((prop) => prop.name === TILED_SIGN_PROPERTY.ID)?.value;
       const sign = DataUtils.getSignData(this, signId);
 
-      const usePlaceholderText = this.#player.direction !== DIRECTION.UP;
-      let textToShow = CANNOT_READ_SIGN_TEXT;
-      if (!usePlaceholderText) {
-        textToShow = sign?.message || SAMPLE_TEXT;
-      }
+      const textToShow = sign?.message || SAMPLE_TEXT;
       this.#dialogUi.showDialogModal([textToShow]);
       return;
     }
