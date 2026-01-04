@@ -263,7 +263,7 @@ export class WorldScene extends BaseScene {
         this.#handlePlayerDirectionUpdate();
       },
       otherCharactersToCheckForCollisionsWith: this.#npcs,
-      objectsToCheckForCollisionsWith: this.#items,
+      objectsToCheckForCollisionsWith: this.#items.filter((item) => item.gameObject.alpha > 0),
       entranceLayer: this.#entranceLayer,
       enterEntranceCallback: (entranceName, entranceId, isBuildingEntrance) => {
         this.#handleEntranceEnteredCallback(entranceName, entranceId, isBuildingEntrance);
