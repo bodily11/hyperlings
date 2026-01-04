@@ -18,7 +18,7 @@ import { DataUtils } from '../utils/data-utils.js';
 import { playBackgroundMusic, playSoundFx } from '../utils/audio-utils.js';
 import { weightedRandom } from '../utils/random.js';
 import { Item } from '../world/item.js';
-import { BATTLE_FLAG, ENCOUNTER_TILE_TYPE, GAME_EVENT_TYPE, ITEM_CATEGORY, NPC_EVENT_TYPE } from '../types/typedef.js';
+import { BATTLE_FLAG, ENCOUNTER_TILE_TYPE, GAME_EVENT_TYPE, GAME_FLAG, ITEM_CATEGORY, NPC_EVENT_TYPE } from '../types/typedef.js';
 import { exhaustiveGuard } from '../utils/guard.js';
 import { sleep } from '../utils/time-utils.js';
 import { CutsceneScene } from './cutscene-scene.js';
@@ -510,6 +510,11 @@ export class WorldScene extends BaseScene {
       nearbyItem.gameObject.destroy();
       this.#items.splice(nearbyItemIndex, 1);
       dataManager.addItemPickedUp(nearbyItem.id);
+
+      if (nearbyItem.id >= 101 && nearbyItem.id <= 104) {
+        dataManager.addFlag(GAME_FLAG.OVEN_POTION_FOUND);
+      }
+
       this.#dialogUi.showDialogModal([`You found a ${item.name}`]);
     }
   }
@@ -729,6 +734,8 @@ export class WorldScene extends BaseScene {
     /** @type {number[]} */
     const itemsPickedUp = dataManager.store.get(DATA_MANAGER_STORE_KEYS.ITEMS_PICKED_UP) || [];
 
+    const ovenPotionFound = dataManager.getFlags().has(GAME_FLAG.OVEN_POTION_FOUND);
+
     for (const tiledItem of validItems) {
       /** @type {number} */
       const itemId = /** @type {import('../types/typedef.js').TiledObjectProperty[]} */ (tiledItem.properties).find(
@@ -740,7 +747,16 @@ export class WorldScene extends BaseScene {
         (property) => property.name === TILED_ITEM_PROPERTY.ID
       )?.value;
 
+      /** @type {boolean} */
+      const hidden = /** @type {import('../types/typedef.js').TiledObjectProperty[]} */ (tiledItem.properties).find(
+        (property) => property.name === TILED_ITEM_PROPERTY.HIDDEN
+      )?.value || false;
+
       if (itemsPickedUp.includes(id)) {
+        continue;
+      }
+
+      if (ovenPotionFound && id >= 101 && id <= 104) {
         continue;
       }
 
@@ -753,6 +769,7 @@ export class WorldScene extends BaseScene {
         },
         itemId,
         id,
+        hidden,
       });
       this.#items.push(item);
     }

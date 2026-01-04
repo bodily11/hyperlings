@@ -32,6 +32,7 @@ export const TILED_ENCOUNTER_PROPERTY = Object.freeze({
 export const TILED_ITEM_PROPERTY = Object.freeze({
   ITEM_ID: 'item_id',
   ID: 'id',
+  HIDDEN: 'hidden',
 });
 
 export const TILED_AREA_METADATA_PROPERTY = Object.freeze({

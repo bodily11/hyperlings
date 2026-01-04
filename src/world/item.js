@@ -7,6 +7,7 @@ import { WORLD_ASSET_KEYS } from '../assets/asset-keys.js';
  * @property {import("../types/typedef").Coordinate} position the items position
  * @property {number} itemId
  * @property {number} id
+ * @property {boolean} [hidden] optional flag to make the item invisible
  */
 
 export class Item {
@@ -29,6 +30,10 @@ export class Item {
     this.#phaserGameObject = this.#scene.add
       .image(config.position.x, config.position.y, WORLD_ASSET_KEYS.BEACH, 22)
       .setOrigin(0);
+
+    if (config.hidden) {
+      this.#phaserGameObject.setAlpha(0);
+    }
   }
 
   /** @type {Phaser.GameObjects.Image} */

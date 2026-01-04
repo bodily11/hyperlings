@@ -308,6 +308,7 @@ export const GAME_EVENT_TYPE = Object.freeze({
 export const GAME_FLAG = Object.freeze({
   LOOKING_FOR_PROFESSOR: 'LOOKING_FOR_PROFESSOR',
   FOUND_PROFESSOR: 'FOUND_PROFESSOR',
+  OVEN_POTION_FOUND: 'OVEN_POTION_FOUND',
 });
 
 /**
