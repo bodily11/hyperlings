@@ -13,16 +13,16 @@ import Phaser from '../lib/phaser.js';
  * @param {Phaser.GameObjects.Text} target the Phaser 3 Text Game Object that will be animated
  * @param {string} text the text to display on the target game object
  * @param {AnimateTextConfig} [config]
- * @returns {void}
+ * @returns {Phaser.Time.TimerEvent} the timer event that can be used to cancel the animation
  */
 export function animateText(scene, target, text, config) {
   const length = text.length;
   let i = 0;
-  scene.time.addEvent({
+  return scene.time.addEvent({
     callback: () => {
       target.text += text[i];
       ++i;
-      if (i === length - 1 && config?.callback) {
+      if (i === length && config?.callback) {
         config.callback();
       }
     },

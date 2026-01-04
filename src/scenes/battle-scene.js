@@ -223,6 +223,7 @@ export class BattleScene extends BaseScene {
       wasSpaceKeyPressed &&
       (this.#battleStateMachine.currentStateName === BATTLE_STATES.PRE_BATTLE_INFO ||
         this.#battleStateMachine.currentStateName === BATTLE_STATES.PRE_BATTLE_INFO_NPC ||
+        this.#battleStateMachine.currentStateName === BATTLE_STATES.BATTLE ||
         this.#battleStateMachine.currentStateName === BATTLE_STATES.POST_ATTACK_CHECK ||
         this.#battleStateMachine.currentStateName === BATTLE_STATES.GAIN_EXPERIENCE ||
         this.#battleStateMachine.currentStateName === BATTLE_STATES.SWITCH_MONSTER ||
@@ -231,6 +232,7 @@ export class BattleScene extends BaseScene {
         this.#battleStateMachine.currentStateName === BATTLE_STATES.CAUGHT_MONSTER ||
         this.#battleStateMachine.currentStateName === BATTLE_STATES.FLEE_ATTEMPT)
     ) {
+      // handlePlayerInput has guards to only advance messages, not process menu selections
       this.#battleMenu.handlePlayerInput('OK');
       return;
     }
@@ -548,6 +550,7 @@ export class BattleScene extends BaseScene {
           });
           this.#battleMenu.updateInfoPaneMessageNoInputRequired(`go ${this.#activePlayerMonster.name}!`, () => {
             // wait for text animation to complete and move to next state
+            this._controls.lockInput = true;
             this.time.delayedCall(1200, () => {
               if (this.#switchingActiveMonster && !this.#activeMonsterKnockedOut) {
                 this.#battleStateMachine.setState(BATTLE_STATES.ENEMY_INPUT);
@@ -576,6 +579,7 @@ export class BattleScene extends BaseScene {
       onEnter: () => {
         // hide the main battle menu to prevent interaction during enemy turn
         this.#battleMenu.hideMainBattleMenu();
+        this.#battleMenu.hideMonsterAttackSubMenu();
         // pick a random move for the enemy monster, and in the future implement some type of AI behavior
         this.#activeEnemyAttackIndex = this.#activeEnemyMonster.pickRandomMove();
         this.#battleStateMachine.setState(BATTLE_STATES.BATTLE);
@@ -585,6 +589,8 @@ export class BattleScene extends BaseScene {
     this.#battleStateMachine.addState({
       name: BATTLE_STATES.BATTLE,
       onEnter: () => {
+        this.#battleMenu.hideMainBattleMenu();
+        this.#battleMenu.hideMonsterAttackSubMenu();
         // general battle flow
         // show attack used, brief pause
         // then play attack animation, brief pause
@@ -600,6 +606,7 @@ export class BattleScene extends BaseScene {
 
         // if player failed to flee, only have enemy attack
         if (this.#battleMenu.isAttemptingToFlee) {
+          this._controls.lockInput = true;
           this.time.delayedCall(500, () => {
             this.#enemyAttack(() => {
               this.#battleStateMachine.setState(BATTLE_STATES.POST_ATTACK_CHECK);
@@ -610,6 +617,7 @@ export class BattleScene extends BaseScene {
 
         // if player switched active monster, only have enemy attack
         if (this.#switchingActiveMonster) {
+          this._controls.lockInput = true;
           this.time.delayedCall(500, () => {
             this.#enemyAttack(() => {
               this.#switchingActiveMonster = false;
@@ -660,10 +668,13 @@ export class BattleScene extends BaseScene {
     this.#battleStateMachine.addState({
       name: BATTLE_STATES.FLEE_ATTEMPT,
       onEnter: () => {
+        this.#battleMenu.hideMainBattleMenu();
+        this.#battleMenu.hideMonsterAttackSubMenu();
         const randomNumber = Phaser.Math.Between(1, 10);
         if (randomNumber > 5) {
           // player has run away successfully
           this.#showMessagesAndWaitForInput(['You got away safely!'], () => {
+            this._controls.lockInput = true;
             this.time.delayedCall(200, () => {
               playSoundFx(this, AUDIO_ASSET_KEYS.FLEE);
               this.#battleStateMachine.setState(BATTLE_STATES.FINISHED);
@@ -673,6 +684,7 @@ export class BattleScene extends BaseScene {
         }
         // player failed to run away, allow enemy to take their turn
         this.#showMessagesAndWaitForInput(['You failed to run away...'], () => {
+          this._controls.lockInput = true;
           this.time.delayedCall(200, () => {
             this.#battleStateMachine.setState(BATTLE_STATES.ENEMY_INPUT);
           });
@@ -683,6 +695,9 @@ export class BattleScene extends BaseScene {
     this.#battleStateMachine.addState({
       name: BATTLE_STATES.GAIN_EXPERIENCE,
       onEnter: () => {
+        this.#battleMenu.hideMainBattleMenu();
+        this.#battleMenu.hideMonsterAttackSubMenu();
+        this._controls.lockInput = true;
         // update exp bar based on experience gained, then transition to finished state
         const gainedExpForActiveMonster = calculateExpGainedFromMonster(
           this.#activeEnemyMonster.baseExpValue,
@@ -743,7 +758,6 @@ export class BattleScene extends BaseScene {
           }
         });
 
-        this._controls.lockInput = true;
         this.#activePlayerMonster.updateMonsterExpBar(didActiveMonsterLevelUp, false, () => {
           this.#showMessagesAndWaitForInput(messages, () => {
             this.time.delayedCall(200, () => {
@@ -827,6 +841,8 @@ export class BattleScene extends BaseScene {
     this.#battleStateMachine.addState({
       name: BATTLE_STATES.NPC_SWITCH_MONSTER,
       onEnter: () => {
+        this.#battleMenu.hideMainBattleMenu();
+        this.#battleMenu.hideMonsterAttackSubMenu();
         // npc has other monsters that can be switched to, for now npc will just switch to the next monster in the battle line
         // TODO:FUTURE this could be enhanced if we wanted the npc to pick a random monster, choose one based on the monster
         // the player has out, etc.
@@ -867,6 +883,9 @@ export class BattleScene extends BaseScene {
     this.#battleStateMachine.addState({
       name: BATTLE_STATES.HEAL_ITEM_USED,
       onEnter: () => {
+        this.#battleMenu.hideMainBattleMenu();
+        this.#battleMenu.hideMonsterAttackSubMenu();
+        this._controls.lockInput = true;
         this.#activePlayerMonster.updateMonsterHealth(
           /** @type {import('../types/typedef.js').Monster[]} */ (
             dataManager.store.get(DATA_MANAGER_STORE_KEYS.MONSTERS_IN_PARTY)
@@ -883,6 +902,8 @@ export class BattleScene extends BaseScene {
     this.#battleStateMachine.addState({
       name: BATTLE_STATES.CAPTURE_ITEM_USED,
       onEnter: async () => {
+        this.#battleMenu.hideMainBattleMenu();
+        this.#battleMenu.hideMonsterAttackSubMenu();
         // we throw the monster ball to attempt to capture the monster
         // play ball shake animation depending on success of capture
         // 3 shakes - caught, 2 shakes - off by 10, 1 shakes off by 30, 0 shakes off by more than 30
@@ -957,11 +978,22 @@ export class BattleScene extends BaseScene {
   handleSceneResume(sys, data) {
     super.handleSceneResume(sys, data);
 
+    // If an item was used, don't reset or go to PLAYER_INPUT
+    // Let the battle menu's resume handler show the message and set wasItemUsed flag
+    // Then the update loop will detect it and handle the item usage flow
+    if (data && data.wasItemUsed) {
+      return;
+    }
+
+    // Reset battle menu to clean state to clear any stale callbacks/animations from other scenes
+    this.#battleMenu.resetToCleanState();
+
     if (!data || !data.wasMonsterSelected || data.selectedMonsterIndex === undefined) {
       this.#battleStateMachine.setState(BATTLE_STATES.PLAYER_INPUT);
       return;
     }
 
+    // Lock input for monster switching to prevent race condition window after super call
     this._controls.lockInput = true;
     this.#switchingActiveMonster = true;
 

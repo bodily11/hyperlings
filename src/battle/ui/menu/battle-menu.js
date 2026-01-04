@@ -71,6 +71,14 @@ export class BattleMenu {
   #wasItemUsed;
   /** @type {boolean} */
   #isTrainerBattle;
+  /** @type {Phaser.Time.TimerEvent | undefined} */
+  #activeTextAnimationTimerEvent;
+  /** @type {boolean} */
+  #menusEnabled;
+  /** @type {(() => void) | undefined} */
+  #pendingNoInputCallback;
+  /** @type {string | undefined} */
+  #pendingNoInputMessage;
 
   /**
    *
@@ -95,6 +103,10 @@ export class BattleMenu {
     this.#usedItem = undefined;
     this.#fleeAttempt = false;
     this.#switchMonsterAttempt = false;
+    this.#activeTextAnimationTimerEvent = undefined;
+    this.#menusEnabled = false;
+    this.#pendingNoInputCallback = undefined;
+    this.#pendingNoInputMessage = undefined;
     this.#createMainInfoPane();
     this.#createMainBattleMenu();
     this.#createMonsterAttackSubMenu();
@@ -143,6 +155,43 @@ export class BattleMenu {
     return this.#switchMonsterAttempt;
   }
 
+  /** @type {boolean} */
+  get isWaitingForPlayerInput() {
+    return this.#waitingForPlayerInput;
+  }
+
+  /** @type {boolean} */
+  get hasQueuedMessages() {
+    return this.#infoPanelMessagesQueue.length > 0;
+  }
+
+  /**
+   * Cancels any active text animation to prevent overlapping animations.
+   * @private
+   * @returns {void}
+   */
+  #cancelActiveAnimation() {
+    if (this.#activeTextAnimationTimerEvent) {
+      this.#activeTextAnimationTimerEvent.remove();
+      this.#activeTextAnimationTimerEvent = undefined;
+    }
+    this.#queuedMessageAnimationPlaying = false;
+  }
+
+  /**
+   * Resets the battle menu to a clean state, clearing all pending animations and callbacks.
+   * Should be called when resuming the battle scene from other scenes.
+   * @returns {void}
+   */
+  resetToCleanState() {
+    this.#cancelActiveAnimation();
+    this.#pendingNoInputCallback = undefined;
+    this.#pendingNoInputMessage = undefined;
+    this.#waitingForPlayerInput = false;
+    this.#infoPanelMessagesQueue = [];
+    this.#battleTextGameObjectLine1.setText('');
+  }
+
   /**
    * Trigger to update the attack names after a monster has changed in the battle scene.
    * @returns {void}
@@ -164,6 +213,7 @@ export class BattleMenu {
    * @returns {void}
    */
   showMainBattleMenu() {
+    this.#menusEnabled = true;
     this.#activeBattleMenu = ACTIVE_BATTLE_MENU.BATTLE_MAIN;
     this.#battleTextGameObjectLine1.setText('what should');
     this.#mainBattleMenuPhaserContainerGameObject.setAlpha(1);
@@ -183,6 +233,7 @@ export class BattleMenu {
    * @returns {void}
    */
   hideMainBattleMenu() {
+    this.#menusEnabled = false;
     this.#mainBattleMenuPhaserContainerGameObject.setAlpha(0);
     this.#battleTextGameObjectLine1.setAlpha(0);
     this.#battleTextGameObjectLine2.setAlpha(0);
@@ -192,6 +243,7 @@ export class BattleMenu {
    * @returns {void}
    */
   showMonsterAttackSubMenu() {
+    this.#menusEnabled = true;
     this.#activeBattleMenu = ACTIVE_BATTLE_MENU.BATTLE_MOVE_SELECT;
     this.#moveSelectionSubBattleMenuPhaserContainerGameObject.setAlpha(1);
   }
@@ -238,6 +290,30 @@ export class BattleMenu {
       return;
     }
 
+    // Allow space to skip "no input required" message animations
+    if (this.#pendingNoInputCallback && input === 'OK') {
+      this.#cancelActiveAnimation();
+      if (this.#pendingNoInputMessage) {
+        this.#battleTextGameObjectLine1.setText(this.#pendingNoInputMessage);
+      }
+      const callbackToInvoke = this.#pendingNoInputCallback;
+      this.#pendingNoInputCallback = undefined;
+      this.#pendingNoInputMessage = undefined;
+      try {
+        if (callbackToInvoke) {
+          callbackToInvoke();
+        }
+      } catch (error) {
+        console.error('Error invoking skip callback:', error);
+      }
+      return;
+    }
+
+    // Don't process menu navigation/selection if menus are not enabled
+    if (!this.#menusEnabled) {
+      return;
+    }
+
     if (input === 'CANCEL') {
       this.#switchToMainBattleMenu();
       return;
@@ -265,6 +341,10 @@ export class BattleMenu {
    * @returns {void}
    */
   updateInfoPaneMessageNoInputRequired(message, callback) {
+    this.#cancelActiveAnimation();
+    this.#pendingNoInputCallback = undefined;
+    this.#pendingNoInputMessage = undefined;
+
     this.#battleTextGameObjectLine1.setText('').setAlpha(1);
 
     if (this.#skipAnimations) {
@@ -276,12 +356,25 @@ export class BattleMenu {
       return;
     }
 
-    animateText(this.#scene, this.#battleTextGameObjectLine1, message, {
+    // Store the callback and message so they can be triggered if player presses space to skip animation
+    this.#pendingNoInputCallback = callback || undefined;
+    this.#pendingNoInputMessage = message;
+
+    this.#activeTextAnimationTimerEvent = animateText(this.#scene, this.#battleTextGameObjectLine1, message, {
       delay: dataManager.getAnimatedTextSpeed(),
       callback: () => {
+        this.#activeTextAnimationTimerEvent = undefined;
         this.#waitingForPlayerInput = false;
-        if (callback) {
-          callback();
+        const callbackToInvoke = this.#pendingNoInputCallback;
+        this.#pendingNoInputCallback = undefined;
+        this.#pendingNoInputMessage = undefined;
+        // Always invoke callback, even if undefined check fails
+        try {
+          if (callbackToInvoke) {
+            callbackToInvoke();
+          }
+        } catch (error) {
+          console.error('Error invoking pending callback:', error);
         }
       },
     });
@@ -309,6 +402,10 @@ export class BattleMenu {
    */
   #updateInfoPaneWithMessage() {
     this.#waitingForPlayerInput = false;
+    this.#cancelActiveAnimation();
+    this.#pendingNoInputCallback = undefined;
+    this.#pendingNoInputMessage = undefined;
+
     this.#battleTextGameObjectLine1.setText('').setAlpha(1);
     this.hideInputCursor();
 
@@ -346,9 +443,10 @@ export class BattleMenu {
     }
 
     this.#queuedMessageAnimationPlaying = true;
-    animateText(this.#scene, this.#battleTextGameObjectLine1, messageToDisplay, {
+    this.#activeTextAnimationTimerEvent = animateText(this.#scene, this.#battleTextGameObjectLine1, messageToDisplay, {
       delay: dataManager.getAnimatedTextSpeed(),
       callback: () => {
+        this.#activeTextAnimationTimerEvent = undefined;
         this.playInputCursorAnimation();
         this.#waitingForPlayerInput = true;
         this.#queuedMessageAnimationPlaying = false;
@@ -795,8 +893,9 @@ export class BattleMenu {
       return;
     }
 
-    this.#wasItemUsed = true;
     this.#usedItem = data.item;
-    this.updateInfoPaneMessagesAndWaitForInput([`You used the following item: ${data.item.name}`]);
+    this.updateInfoPaneMessagesAndWaitForInput([`You used the following item: ${data.item.name}`], () => {
+      this.#wasItemUsed = true;
+    });
   }
 }
